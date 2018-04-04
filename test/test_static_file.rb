@@ -58,35 +58,56 @@ class TestStaticFile < JekyllUnitTest
       assert_equal "base/#{@filename}", setup_static_file("base", nil, @filename).path
     end
 
-    should "have a destination relative directory without a collection" do
-      static_file = setup_static_file("root", "dir/subdir", "file.html")
-      assert_nil static_file.type
-      assert_equal "dir/subdir/file.html", static_file.url
-      assert_equal "dir/subdir", static_file.destination_rel_dir
+    context "outside a collection" do
+      should "appear in 'site.static_files'" do
+        static_file = setup_static_file("root", "dir", @filename)
+        @site.process
+        assert @site.static_files.collect(&:name).include? static_file.name
+      end
+
+      should "have a destination relative directory" do
+        static_file = setup_static_file("root", "dir/subdir", "file.html")
+        assert_nil static_file.type
+        assert_equal "dir/subdir/file.html", static_file.url
+        assert_equal "dir/subdir", static_file.destination_rel_dir
+      end
     end
 
-    should "have a destination relative directory with a collection" do
-      static_file = setup_static_file_with_collection(
-        "root",
-        "_foo/dir/subdir",
-        "file.html",
-        { "output" => true }
-      )
-      assert_equal :foo, static_file.type
-      assert_equal "/foo/dir/subdir/file.html", static_file.url
-      assert_equal "/foo/dir/subdir", static_file.destination_rel_dir
-    end
+    context "within a collection" do
+      should "appear in 'site.static_files'" do
+        static_file = setup_static_file_with_collection(
+          "root",
+          "_collection",
+          "member.txt",
+          {}
+        )
+        @site.process
+        assert @site.static_files.collect(&:name).include? static_file.name
+      end
 
-    should "use its collection's permalink template for destination relative directory" do
-      static_file = setup_static_file_with_collection(
-        "root",
-        "_foo/dir/subdir",
-        "file.html",
-        { "output" => true, "permalink" => "/:path/" }
-      )
-      assert_equal :foo, static_file.type
-      assert_equal "/dir/subdir/file.html", static_file.url
-      assert_equal "/dir/subdir", static_file.destination_rel_dir
+      should "have a destination relative directory" do
+        static_file = setup_static_file_with_collection(
+          "root",
+          "_foo/dir/subdir",
+          "file.html",
+          { "output" => true }
+        )
+        assert_equal :foo, static_file.type
+        assert_equal "/foo/dir/subdir/file.html", static_file.url
+        assert_equal "/foo/dir/subdir", static_file.destination_rel_dir
+      end
+
+      should "use its collection's permalink template for destination relative directory" do
+        static_file = setup_static_file_with_collection(
+          "root",
+          "_foo/dir/subdir",
+          "file.html",
+          { "output" => true, "permalink" => "/:path/" }
+        )
+        assert_equal :foo, static_file.type
+        assert_equal "/dir/subdir/file.html", static_file.url
+        assert_equal "/dir/subdir", static_file.destination_rel_dir
+      end
     end
 
     should "be writable by default" do
